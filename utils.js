@@ -20,3 +20,20 @@ export function extractPointsFromLayers(data) {
     }
     return allLayerPoints.flat();
 }
+
+//  EXAMPLE LOADING A JSON XOBJECT TOOLPATH AS GEOMETRY ///
+// Load the JSON file
+//const jsonData = utils.loadJSONFile('ScreenBase_v0_044902894.json');
+    
+// Extract points from all layers in the JSON data
+//const allLayerPoints = utils.extractPointsFromLayers(jsonData);
+
+// Create a geometry from the points
+// const myPoints = new THREE.BufferGeometry().setFromPoints(
+//     allLayerPoints.map(point => new THREE.Vector3((point[0]/1000), point[2]/1000-1, point[1]/1000-0.5))
+// );
+// const mymaterial = new THREE.LineBasicMaterial({ color: 0x0085eb });
+// const myline = new THREE.Line(myPoints, mymaterial);
+// scene.add(myline);
+
+//fnm env --use-on-cd | Out-String | Invoke-Expression /// Need sometime to use npx vite

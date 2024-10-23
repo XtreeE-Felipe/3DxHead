@@ -3,7 +3,6 @@ import * as utils from '/utils.js';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 
-
 // Scene
 const scene = new THREE.Scene();
 scene.background = new THREE.Color('#021129');
@@ -12,20 +11,6 @@ const renderer = new THREE.WebGLRenderer({ antialias: true });
 renderer.shadowMap.enabled = true;
 renderer.setSize(window.innerWidth, window.innerHeight);
 document.body.appendChild(renderer.domElement);
-
-// Load the JSON file
-//const jsonData = utils.loadJSONFile('ScreenBase_v0_044902894.json');
-    
-// Extract points from all layers in the JSON data
-//const allLayerPoints = utils.extractPointsFromLayers(jsonData);
-
-// Create a geometry from the points
-// const myPoints = new THREE.BufferGeometry().setFromPoints(
-//     allLayerPoints.map(point => new THREE.Vector3((point[0]/1000), point[2]/1000-1, point[1]/1000-0.5))
-// );
-// const mymaterial = new THREE.LineBasicMaterial({ color: 0x0085eb });
-// const myline = new THREE.Line(myPoints, mymaterial);
-// scene.add(myline);
 
 // Lights
 const ambientLight = new THREE.AmbientLight(0xffffff, 1); // Soft white light
@@ -94,8 +79,8 @@ const mouse = new THREE.Vector2();
 // Rotation settings
 let rotating = false;
 let rotationSpeed = 0.08;
-let rotatingDirection = 1;
-let maxRotation = 2;
+let rotatingDirection = 1; // 1 or -1
+let maxRotation = 2;  //Angle in radians
 
 // Animate and render the scene
 function animate() {
@@ -146,7 +131,7 @@ if (intersects.length > 0) {
 }
 });
 
-// Hide or show the meshes
+// MouseOver Handlers
 function _1K(){
     meshes['Sys0'].visible = false;
     meshes['Sys1'].visible = false;
@@ -182,10 +167,9 @@ function _3K(){
     meshes['Sys3'].visible = false;
 }
 
+// MouseOver Events
 document.getElementById("1K").addEventListener("mouseenter", ()=> _1K())
 document.getElementById("1K+").addEventListener("mouseenter", ()=> _1Kplus())
 document.getElementById("2K").addEventListener("mouseenter", ()=> _2K())
 document.getElementById("2K+").addEventListener("mouseenter", ()=> _2Kplus())
 document.getElementById("3K").addEventListener("mouseenter", ()=> _3K())
-
-//fnm env --use-on-cd | Out-String | Invoke-Expression
