@@ -1,40 +1,74 @@
 import * as THREE from 'three';
-import * as utils from '/utils.js';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+import { CSS2DRenderer, CSS2DObject } from 'three/examples/jsm/renderers/CSS2DRenderer.js';
+import { gsap } from 'gsap';
 
 // Scene
 const scene = new THREE.Scene();
 scene.background = new THREE.Color('#021129');
 
-const renderer = new THREE.WebGLRenderer({ antialias: true });
+// Renderer setup with improved settings
+const renderer = new THREE.WebGLRenderer({ 
+    antialias: true,
+    powerPreference: "high-performance"
+});
 renderer.shadowMap.enabled = true;
+renderer.shadowMap.type = THREE.PCFSoftShadowMap; // Softer shadows
+renderer.physicallyCorrectLights = true; // Enable physically correct lighting
+renderer.outputEncoding = THREE.sRGBEncoding; // Correct color space
+renderer.toneMapping = THREE.ACESFilmicToneMapping; // Better color reproduction
+renderer.toneMappingExposure = 1.0;
 renderer.setSize(window.innerWidth, window.innerHeight);
 document.body.appendChild(renderer.domElement);
 
-// Lights
-const ambientLight = new THREE.AmbientLight(0xffffff, 1); // Soft white light
+// CSS2D Renderer for labels
+const labelRenderer = new CSS2DRenderer();
+labelRenderer.setSize(window.innerWidth, window.innerHeight);
+labelRenderer.domElement.style.position = 'absolute';
+labelRenderer.domElement.style.top = '0px';
+document.body.appendChild(labelRenderer.domElement);
+
+// Improved Lighting Setup
+// Ambient light for general illumination
+const ambientLight = new THREE.AmbientLight(0xffffff, 0.5);
 scene.add(ambientLight);
 
-const directionalLight = new THREE.DirectionalLight(0xffffff, 2.5); // Bright light
-directionalLight.position.set(1, 1, -2);
-directionalLight.castShadow = true;
-scene.add(directionalLight);
-//const helper = new THREE.DirectionalLightHelper( directionalLight, 1 );
-//scene.add( helper );
+// Main key light
+const keyLight = new THREE.DirectionalLight(0xffffff, 1);
+keyLight.position.set(5, 5, 5);
+keyLight.castShadow = true;
+// Improve shadow quality
+keyLight.shadow.mapSize.width = 2048;
+keyLight.shadow.mapSize.height = 2048;
+keyLight.shadow.camera.near = 0.1;
+keyLight.shadow.camera.far = 20;
+keyLight.shadow.camera.left = -5;
+keyLight.shadow.camera.right = 5;
+keyLight.shadow.camera.top = 5;
+keyLight.shadow.camera.bottom = -5;
+keyLight.shadow.bias = -0.0001;
+scene.add(keyLight);
 
-const hemiLight = new THREE.HemisphereLight( 0xffffff, 0x8d8d8d, 3 );
-hemiLight.position.set( 0, 20, 0 );
-scene.add( hemiLight );
+// Fill light
+const fillLight = new THREE.DirectionalLight(0x8fb0ff, 0.7); // Slightly blue tint
+fillLight.position.set(-5, 3, -5);
+scene.add(fillLight);
+
+// Rim light for edge highlighting
+const rimLight = new THREE.DirectionalLight(0xffffff, 0.6);
+rimLight.position.set(0, 3, -5);
+scene.add(rimLight);
 
 //Camera
 const camera = new THREE.PerspectiveCamera(35, window.innerWidth / window.innerHeight, 0.1, 100);
 camera.position.set(3,3,3);
 
-const controls = new OrbitControls( camera, renderer.domElement );
+// Modified controls setup
+const controls = new OrbitControls(camera, labelRenderer.domElement);  // Change to labelRenderer
 controls.enablePan = false;
 controls.enableZoom = true;
-controls.target.set( 0, 0.5, 0 );
+controls.target.set(0, 0.5, 0);
 controls.update();
 
 // Axis
@@ -47,6 +81,24 @@ mesh.rotation.x = - Math.PI / 2;
 mesh.receiveShadow = true;
 //scene.add( mesh );
 
+// Create label function
+function createLabel(mesh, text) {
+    const div = document.createElement('div');
+    div.className = 'label';
+    div.textContent = text;
+    div.style.backgroundColor = 'rgba(0, 0, 0, 0.75)';
+    div.style.color = 'white';
+    div.style.padding = '2px 10px';
+    div.style.borderRadius = '0px';
+    div.style.fontSize = '18px';
+    div.style.pointerEvents = 'none';
+    div.style.fontFamily = 'Segoe UI';
+
+    const label = new CSS2DObject(div);
+    label.position.set(0, 1, 0); // Adjust these values to position the label relative to mesh
+    mesh.add(label);
+}
+
 // Load Meshes Function
 const loader = new GLTFLoader();
 
@@ -56,8 +108,13 @@ function loadMesh(fileName, key, isVisible = true) {
     loader.load(fileName, function (gltf) {
         meshes[key] = gltf.scene;
         meshes[key].castShadow = true;
-        meshes[key].visible = isVisible; // Setting the visibility here ensure the mesh is fully loaded
+        meshes[key].visible = isVisible; 
         scene.add(meshes[key]);
+        
+        // Add label if it's Sys0
+        if (key === 'Sys0') {
+            createLabel(meshes[key], 'System 0');
+        }
     }, undefined, function (error) {
         console.error('Error loading', fileName, error);
     });
@@ -66,11 +123,11 @@ function loadMesh(fileName, key, isVisible = true) {
 // Load each mesh using the function
 loadMesh('Meshes/Carter01.glb', 'Carter01');
 loadMesh('Meshes/Carter02.glb', 'Carter02');
-loadMesh('Meshes/0.glb', 'Sys0', false);
+loadMesh('Meshes/1SM.glb', 'Sys0', false);
 loadMesh('Meshes/1.glb', 'Sys1', false);
 loadMesh('Meshes/2.glb', 'Sys2', false);
 loadMesh('Meshes/3.glb', 'Sys3', false);
-loadMesh('Meshes/4.glb', 'Sys4');
+loadMesh('Meshes/4SM.glb', 'Sys4');
 
 // Raycaster to detect mouse clicks on the mesh
 const raycaster = new THREE.Raycaster();
@@ -110,25 +167,54 @@ function animate() {
     }
 
     renderer.render(scene, camera);
+    labelRenderer.render(scene, camera);
+}
+
+// Handle window resize
+window.addEventListener('resize', onWindowResize, false);
+
+function onWindowResize() {
+    camera.aspect = window.innerWidth / window.innerHeight;
+    camera.updateProjectionMatrix();
+    renderer.setSize(window.innerWidth, window.innerHeight);
+    labelRenderer.setSize(window.innerWidth, window.innerHeight);
 }
 
 animate();
 
 // Detect click events
 window.addEventListener('click', (event) => {
-// Calculate mouse position in normalized device coordinates (-1 to +1)
-mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
-mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
+    // Calculate mouse position in normalized device coordinates (-1 to +1)
+    mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
+    mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
 
-// Update raycaster with camera and mouse position
-raycaster.setFromCamera(mouse, camera);
+    // Update raycaster with camera and mouse position
+    raycaster.setFromCamera(mouse, camera);
 
-// Detect intersected objects
-const intersects = raycaster.intersectObject(meshes["Carter01"]);
+    // Detect intersected objects
+    const intersects = raycaster.intersectObject(meshes["Carter01"]);
 
-if (intersects.length > 0) {
-    rotating = !rotating; // Toggle rotation on click
-}
+    if (intersects.length > 0) {
+        rotating = !rotating; // Toggle rotation on click
+        
+        const targetPosition = {
+            x: 4,
+            y: 2.30,
+            z: 2
+        };
+        
+        gsap.to(camera.position, {
+            duration: 1,
+            x: targetPosition.x,
+            y: targetPosition.y,
+            z: targetPosition.z,
+            ease: "power2.inOut",
+            onUpdate: () => {
+                // Ensure camera looks at the object during animation
+                camera.lookAt(meshes["Carter01"].position.x, meshes["Carter01"].position.y + 0.5, meshes["Carter01"].position.z );
+            }
+        });
+    }
 });
 
 // MouseOver Handlers
