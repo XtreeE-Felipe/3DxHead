@@ -68,7 +68,7 @@ camera.position.set(3,3,3);
 const controls = new OrbitControls(camera, labelRenderer.domElement);  // Change to labelRenderer
 controls.enablePan = false;
 controls.enableZoom = true;
-controls.target.set(0, 0.5, 0);
+controls.target.set(0, 0.8, 0);
 controls.update();
 
 // Axis
@@ -81,22 +81,39 @@ mesh.rotation.x = - Math.PI / 2;
 mesh.receiveShadow = true;
 //scene.add( mesh );
 
-// Create label function
+// Create label function 
 function createLabel(mesh, text) {
     const div = document.createElement('div');
     div.className = 'label';
     div.textContent = text;
-    div.style.backgroundColor = 'rgba(0, 0, 0, 0.75)';
+    div.style.backgroundColor = 'rgba(0, 0, 0, 0.6)';
     div.style.color = 'white';
-    div.style.padding = '2px 10px';
-    div.style.borderRadius = '0px';
-    div.style.fontSize = '18px';
-    div.style.pointerEvents = 'none';
+    div.style.padding = '2px 6px';
+    div.style.borderRadius = '3px';
+    div.style.fontSize = '16px';
     div.style.fontFamily = 'Segoe UI';
+    div.style.pointerEvents = 'none';
+    div.style.whiteSpace = 'nowrap';
 
     const label = new CSS2DObject(div);
-    label.position.set(0, 1, 0); // Adjust these values to position the label relative to mesh
+    
+    // Calculate center of bounding box
+    const boundingBox = new THREE.Box3().setFromObject(mesh);
+    const center = new THREE.Vector3();
+    boundingBox.getCenter(center);
+    
+    // Convert center to local coordinates relative to the mesh
+    mesh.worldToLocal(center);
+    
+    // Position label at center and slightly above
+    label.position.copy(center);
+    // Add a small Y offset to place it above the center
+    label.position.y += boundingBox.max.y - center.y + 0.1; // 0.1 units above the top
+    
     mesh.add(label);
+    mesh.userData.label = label;
+    
+    return label;
 }
 
 // Load Meshes Function
@@ -104,30 +121,31 @@ const loader = new GLTFLoader();
 
 let meshes = {};
 
-function loadMesh(fileName, key, isVisible = true) {
+function loadMesh(fileName, key, labelText, isVisible = true) {
     loader.load(fileName, function (gltf) {
         meshes[key] = gltf.scene;
         meshes[key].castShadow = true;
         meshes[key].visible = isVisible; 
         scene.add(meshes[key]);
         
-        // Add label if it's Sys0
-        if (key === 'Sys0') {
-            createLabel(meshes[key], 'System 0');
+        if(labelText != ''){
+            createLabel(meshes[key], labelText);
+            meshes[key].userData.label.visible = isVisible;     
         }
+
     }, undefined, function (error) {
         console.error('Error loading', fileName, error);
     });
 }
 
 // Load each mesh using the function
-loadMesh('Meshes/Carter01.glb', 'Carter01');
-loadMesh('Meshes/Carter02.glb', 'Carter02');
-loadMesh('Meshes/1SM.glb', 'Sys0', false);
-loadMesh('Meshes/1.glb', 'Sys1', false);
-loadMesh('Meshes/2.glb', 'Sys2', false);
-loadMesh('Meshes/3.glb', 'Sys3', false);
-loadMesh('Meshes/4SM.glb', 'Sys4');
+loadMesh('Meshes/1SM.glb', 'Plus', '+', false); //Plus
+loadMesh('Meshes/4SM.glb', '1K', '1K'); // 1K
+loadMesh('Meshes/2SM.glb', '2K', '2K', false); // 2K
+loadMesh('Meshes/3SM.glb', '3K', '3K', false); //3K
+loadMesh('Meshes/Carter02.glb', 'Carter02', '');
+loadMesh('Meshes/Carter01.glb', 'Carter01', '');
+loadMesh('Meshes/Robot.glb', 'Robot', '');
 
 // Raycaster to detect mouse clicks on the mesh
 const raycaster = new THREE.Raycaster();
@@ -198,9 +216,9 @@ window.addEventListener('click', (event) => {
         rotating = !rotating; // Toggle rotation on click
         
         const targetPosition = {
-            x: 4,
+            x: 2,
             y: 2.30,
-            z: 2
+            z: 1
         };
         
         gsap.to(camera.position, {
@@ -211,7 +229,7 @@ window.addEventListener('click', (event) => {
             ease: "power2.inOut",
             onUpdate: () => {
                 // Ensure camera looks at the object during animation
-                camera.lookAt(meshes["Carter01"].position.x, meshes["Carter01"].position.y + 0.5, meshes["Carter01"].position.z );
+                camera.lookAt(meshes["Carter01"].position.x, meshes["Carter01"].position.y + 0.8, meshes["Carter01"].position.z );
             }
         });
     }
@@ -219,38 +237,45 @@ window.addEventListener('click', (event) => {
 
 // MouseOver Handlers
 function _1K(){
-    meshes['Sys0'].visible = false;
-    meshes['Sys1'].visible = false;
-    meshes['Sys2'].visible = false;
-    meshes['Sys3'].visible = false;
+    meshes['Plus'].visible = false;
+    meshes['2K'].visible = false;
+    meshes['3K'].visible = false;
+    updateLabelsVisibility()
 }
 
 function _1Kplus(){
-    meshes['Sys0'].visible = true;
-    meshes['Sys1'].visible = false;
-    meshes['Sys2'].visible = false;
-    meshes['Sys3'].visible = false;
+    meshes['Plus'].visible = true;
+    meshes['2K'].visible = false;
+    meshes['3K'].visible = false;
+    updateLabelsVisibility()
 }
 
 function _2K(){
-    meshes['Sys0'].visible = false;
-    meshes['Sys1'].visible = true;
-    meshes['Sys2'].visible = false;
-    meshes['Sys3'].visible = false;
+    meshes['Plus'].visible = false;
+    meshes['2K'].visible = true;
+    meshes['3K'].visible = false;
+    updateLabelsVisibility()
 }
 
 function _2Kplus(){
-    meshes['Sys0'].visible = true;
-    meshes['Sys1'].visible = true;
-    meshes['Sys2'].visible = false;
-    meshes['Sys3'].visible = false;
+    meshes['Plus'].visible = true;
+    meshes['2K'].visible = true;
+    meshes['3K'].visible = false;
+    updateLabelsVisibility()
 }
 
 function _3K(){
-    meshes['Sys0'].visible = true;
-    meshes['Sys1'].visible = true;
-    meshes['Sys2'].visible = true;
-    meshes['Sys3'].visible = false;
+    meshes['Plus'].visible = false;
+    meshes['2K'].visible = true;
+    meshes['3K'].visible = true;
+    updateLabelsVisibility()
+}
+
+function _3Kplus(){
+    meshes['Plus'].visible = true;
+    meshes['2K'].visible = true;
+    meshes['3K'].visible = true;
+    updateLabelsVisibility()
 }
 
 // MouseOver Events
@@ -259,3 +284,12 @@ document.getElementById("1K+").addEventListener("mouseenter", ()=> _1Kplus())
 document.getElementById("2K").addEventListener("mouseenter", ()=> _2K())
 document.getElementById("2K+").addEventListener("mouseenter", ()=> _2Kplus())
 document.getElementById("3K").addEventListener("mouseenter", ()=> _3K())
+document.getElementById("3K+").addEventListener("mouseenter", ()=> _3Kplus())
+
+function updateLabelsVisibility() {
+    Object.keys(meshes).forEach(key => {
+        if (meshes[key].userData.label) {
+            meshes[key].userData.label.visible = meshes[key].visible;
+        }
+    });
+}
